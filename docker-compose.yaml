@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  avito-conference-service:
+    build: .
+    container_name: avito-conference-service
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=12345678
+      - DATABASE_NAME=conv
+      - DATABASE_HOST=postgres_service
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  db:
+    image: postgres:18.1-alpine3.23
+    container_name: postgres_service
+    restart: always
+    ports:
+      - 8003:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: conv
+    volumes:
+      - data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  data:
+    driver: local

@@ -1,0 +1,630 @@
+basePath: /
+definitions:
+  BookingCancelHandler.Response:
+    properties:
+      error:
+        type: string
+      room:
+        $ref: '#/definitions/models.Booking'
+      status:
+        type: integer
+    type: object
+  BookingCreateHandler.Response:
+    properties:
+      error:
+        type: string
+      room:
+        $ref: '#/definitions/models.Booking'
+      status:
+        type: integer
+    type: object
+  DummyLoginHandler.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: integer
+      token:
+        type: string
+    type: object
+  FindBookingHandler.Pagination:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
+  FindBookingHandler.Response:
+    properties:
+      error:
+        type: string
+      pagination:
+        $ref: '#/definitions/FindBookingHandler.Pagination'
+      room:
+        items:
+          $ref: '#/definitions/models.Booking'
+        type: array
+      status:
+        type: integer
+    type: object
+  GetRoomsListHandler.Response:
+    properties:
+      error:
+        type: string
+      rooms:
+        items:
+          $ref: '#/definitions/models.Room'
+        type: array
+    type: object
+  GetSlotsHandler.Response:
+    properties:
+      error:
+        type: string
+      slots:
+        items:
+          $ref: '#/definitions/models.Slot'
+        type: array
+      status:
+        type: integer
+    type: object
+  LoginHandler.Request:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  LoginHandler.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: integer
+      token:
+        type: string
+    type: object
+  MyBookingHandler.Response:
+    properties:
+      error:
+        type: string
+      room:
+        items:
+          $ref: '#/definitions/models.Booking'
+        type: array
+      status:
+        type: integer
+    type: object
+  RegisterHandler.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: integer
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  createRoomHandler.Response:
+    properties:
+      error:
+        type: string
+      room:
+        $ref: '#/definitions/models.Room'
+      status:
+        type: integer
+    type: object
+  createScheduleHandler.Request:
+    properties:
+      days_of_week:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      end:
+        type: string
+      start:
+        type: string
+    required:
+    - days_of_week
+    - end
+    - start
+    type: object
+  createScheduleHandler.Response:
+    properties:
+      error:
+        type: string
+      schedule:
+        $ref: '#/definitions/models.Schedule'
+      status:
+        type: integer
+    type: object
+  models.Booking:
+    properties:
+      conferenceLink:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      slotID:
+        type: string
+      status:
+        $ref: '#/definitions/models.BookingStatus'
+      userID:
+        type: string
+    type: object
+  models.BookingStatus:
+    enum:
+    - active
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - BookingStatusActive
+    - BookingStatusCancelled
+  models.Role:
+    enum:
+    - admin
+    - user
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleUser
+  models.Room:
+    properties:
+      capacity:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.Schedule:
+    properties:
+      daysOfWeek:
+        items:
+          type: integer
+        type: array
+      endTime:
+        type: string
+      id:
+        type: string
+      roomID:
+        type: string
+      startTime:
+        type: string
+    type: object
+  models.Slot:
+    properties:
+      end:
+        type: string
+      id:
+        type: string
+      roomID:
+        type: string
+      start:
+        type: string
+    type: object
+  models.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      password:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для бронирования переговорных комнат
+  title: Booking API
+  version: "1.0"
+paths:
+  /api/bookings/{bookingId}/cancel:
+    post:
+      description: Доступно только роли user. Можно отменять только свои брони. Идемпотентно.
+      parameters:
+      - description: UUID брони
+        in: path
+        name: bookingId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Бронь отменена
+          schema:
+            $ref: '#/definitions/BookingCancelHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/BookingCancelHandler.Response'
+        "403":
+          description: Не своя бронь или роль не user
+          schema:
+            $ref: '#/definitions/BookingCancelHandler.Response'
+        "404":
+          description: Бронь не найдена
+          schema:
+            $ref: '#/definitions/BookingCancelHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/BookingCancelHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Отменить бронь
+      tags:
+      - Bookings
+  /api/bookings/create:
+    post:
+      consumes:
+      - application/json
+      description: Доступно только роли user. userId берётся из JWT. Можно опционально
+        запросить конференцию.
+      parameters:
+      - description: Данные брони
+        in: body
+        name: booking
+        required: true
+        schema:
+          properties:
+            createConferenceLink:
+              type: boolean
+            slotId:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Бронь создана
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "403":
+          description: Доступ запрещён
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "404":
+          description: Слот не найден
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "409":
+          description: Слот уже занят
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/BookingCreateHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Создать бронь на слот
+      tags:
+      - Bookings
+  /api/bookings/my:
+    get:
+      description: Возвращает только брони пользователя, чей user_id в JWT. Только
+        будущие слоты.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: успех
+          schema:
+            $ref: '#/definitions/MyBookingHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/MyBookingHandler.Response'
+        "403":
+          description: Доступ запрещён
+          schema:
+            $ref: '#/definitions/MyBookingHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/MyBookingHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Список броней текущего пользователя
+      tags:
+      - Bookings
+  /api/dummyLogin:
+    post:
+      consumes:
+      - application/json
+      description: Выдаёт тестовый JWT для указанной роли (admin / user). Доступен
+        без авторизации.
+      parameters:
+      - description: Роль пользователя (admin/user)
+        in: body
+        name: role
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT токен
+          schema:
+            $ref: '#/definitions/DummyLoginHandler.Response'
+        "400":
+          description: Неверный запрос (недопустимая роль)
+          schema:
+            $ref: '#/definitions/DummyLoginHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/DummyLoginHandler.Response'
+      summary: Получить тестовый JWT по роли
+      tags:
+      - Auth
+  /api/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя (доп. задание). Доступно без авторизации.
+      parameters:
+      - description: Данные нового пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+            role:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь создан
+          schema:
+            $ref: '#/definitions/RegisterHandler.Response'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/RegisterHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/RegisterHandler.Response'
+      summary: Создать пользователя
+      tags:
+      - Auth
+  /api/rooms/{roomId}/schedule/create:
+    post:
+      consumes:
+      - application/json
+      description: Доступно только admin. После создания изменить нельзя.
+      parameters:
+      - description: UUID переговорки
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Данные расписания
+        in: body
+        name: schedule
+        required: true
+        schema:
+          $ref: '#/definitions/createScheduleHandler.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Расписание создано
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "400":
+          description: Неверный запрос (например daysOfWeek вне 1-7)
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "403":
+          description: Доступ запрещён
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "404":
+          description: Переговорка не найдена
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "409":
+          description: Расписание уже существует
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/createScheduleHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Создать расписание для переговорки
+      tags:
+      - Schedules
+  /api/rooms/{roomId}/slots/list:
+    get:
+      description: Возвращает слоты на указанную дату, которые ещё не забронированы.
+        Доступно для admin и user.
+      parameters:
+      - description: UUID переговорки
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Дата в формате YYYY-MM-DD
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список доступных слотов
+          schema:
+            $ref: '#/definitions/GetSlotsHandler.Response'
+        "400":
+          description: Неверный запрос (отсутствует или некорректен параметр date)
+          schema:
+            $ref: '#/definitions/GetSlotsHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/GetSlotsHandler.Response'
+        "404":
+          description: Переговорка не найдена
+          schema:
+            $ref: '#/definitions/GetSlotsHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/GetSlotsHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Список доступных слотов для переговорки
+      tags:
+      - Slots
+  /api/rooms/create:
+    post:
+      consumes:
+      - application/json
+      description: Доступно только роли admin.
+      parameters:
+      - description: Данные переговорки
+        in: body
+        name: room
+        required: true
+        schema:
+          properties:
+            capacity:
+              type: integer
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Переговорка создана
+          schema:
+            $ref: '#/definitions/createRoomHandler.Response'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/createRoomHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/createRoomHandler.Response'
+        "403":
+          description: Доступ запрещён
+          schema:
+            $ref: '#/definitions/createRoomHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/createRoomHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Создать переговорку
+      tags:
+      - Rooms
+  /api/rooms/list:
+    get:
+      description: Возвращает все переговорки. Доступно для admin и user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список переговорок
+          schema:
+            $ref: '#/definitions/GetRoomsListHandler.Response'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/GetRoomsListHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/GetRoomsListHandler.Response'
+      security:
+      - BearerAuth: []
+      summary: Список переговорок
+      tags:
+      - Rooms
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Авторизует пользователя по email и паролю, возвращает JWT.
+        Реализация этого эндпоинта является **дополнительным заданием**.
+        Для авторизации в рамках обязательной части используйте `/dummyLogin`.
+        Доступен без авторизации.
+      parameters:
+      - description: Учётные данные пользователя
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/LoginHandler.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная авторизация
+          schema:
+            $ref: '#/definitions/LoginHandler.Response'
+        "401":
+          description: Неверные учётные данные
+          schema:
+            $ref: '#/definitions/LoginHandler.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/LoginHandler.Response'
+      summary: Авторизация по email и паролю (ДОПОЛНИТЕЛЬНОЕ ЗАДАНИЕ — необязательно)
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
