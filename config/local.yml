@@ -1,0 +1,6 @@
+env: "local"
+jwt_secret: "jwt-secret"
+exp_time: 1000000000s
+storage_url: "postgresql://postgres:12345678@postgres_service:5432/conv?sslmode=disable"
+http_server:
+  url: "0.0.0.0:8080"
