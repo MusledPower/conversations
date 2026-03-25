@@ -1,0 +1,961 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API для бронирования переговорных комнат",
+        "title": "Booking API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/bookings/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Доступно только роли user. userId берётся из JWT. Можно опционально запросить конференцию.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Создать бронь на слот",
+                "parameters": [
+                    {
+                        "description": "Данные брони",
+                        "name": "booking",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "createConferenceLink": {
+                                    "type": "boolean"
+                                },
+                                "slotId": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Бронь создана",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Слот не найден",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Слот уже занят",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCreateHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bookings/my": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает только брони пользователя, чей user_id в JWT. Только будущие слоты.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Список броней текущего пользователя",
+                "responses": {
+                    "200": {
+                        "description": "успех",
+                        "schema": {
+                            "$ref": "#/definitions/MyBookingHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/MyBookingHandler.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "$ref": "#/definitions/MyBookingHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/MyBookingHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bookings/{bookingId}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Доступно только роли user. Можно отменять только свои брони. Идемпотентно.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Отменить бронь",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID брони",
+                        "name": "bookingId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Бронь отменена",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCancelHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCancelHandler.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Не своя бронь или роль не user",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCancelHandler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Бронь не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCancelHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/BookingCancelHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dummyLogin": {
+            "post": {
+                "description": "Выдаёт тестовый JWT для указанной роли (admin / user). Доступен без авторизации.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Получить тестовый JWT по роли",
+                "parameters": [
+                    {
+                        "description": "Роль пользователя (admin/user)",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "role": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT токен",
+                        "schema": {
+                            "$ref": "#/definitions/DummyLoginHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос (недопустимая роль)",
+                        "schema": {
+                            "$ref": "#/definitions/DummyLoginHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/DummyLoginHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/register": {
+            "post": {
+                "description": "Создаёт нового пользователя (доп. задание). Доступно без авторизации.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Создать пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные нового пользователя",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                },
+                                "role": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Пользователь создан",
+                        "schema": {
+                            "$ref": "#/definitions/RegisterHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/RegisterHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/RegisterHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rooms/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Доступно только роли admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rooms"
+                ],
+                "summary": "Создать переговорку",
+                "parameters": [
+                    {
+                        "description": "Данные переговорки",
+                        "name": "room",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "capacity": {
+                                    "type": "integer"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Переговорка создана",
+                        "schema": {
+                            "$ref": "#/definitions/createRoomHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/createRoomHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/createRoomHandler.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "$ref": "#/definitions/createRoomHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/createRoomHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rooms/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все переговорки. Доступно для admin и user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rooms"
+                ],
+                "summary": "Список переговорок",
+                "responses": {
+                    "200": {
+                        "description": "Список переговорок",
+                        "schema": {
+                            "$ref": "#/definitions/GetRoomsListHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/GetRoomsListHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/GetRoomsListHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rooms/{roomId}/schedule/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Доступно только admin. После создания изменить нельзя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Создать расписание для переговорки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID переговорки",
+                        "name": "roomId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные расписания",
+                        "name": "schedule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Расписание создано",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос (например daysOfWeek вне 1-7)",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Переговорка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Расписание уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/createScheduleHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rooms/{roomId}/slots/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает слоты на указанную дату, которые ещё не забронированы. Доступно для admin и user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Slots"
+                ],
+                "summary": "Список доступных слотов для переговорки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID переговорки",
+                        "name": "roomId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата в формате YYYY-MM-DD",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список доступных слотов",
+                        "schema": {
+                            "$ref": "#/definitions/GetSlotsHandler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос (отсутствует или некорректен параметр date)",
+                        "schema": {
+                            "$ref": "#/definitions/GetSlotsHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/GetSlotsHandler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Переговорка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/GetSlotsHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/GetSlotsHandler.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Авторизует пользователя по email и паролю, возвращает JWT.\nРеализация этого эндпоинта является **дополнительным заданием**.\nДля авторизации в рамках обязательной части используйте `/dummyLogin`.\nДоступен без авторизации.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Авторизация по email и паролю (ДОПОЛНИТЕЛЬНОЕ ЗАДАНИЕ — необязательно)",
+                "parameters": [
+                    {
+                        "description": "Учётные данные пользователя",
+                        "name": "login",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/LoginHandler.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная авторизация",
+                        "schema": {
+                            "$ref": "#/definitions/LoginHandler.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учётные данные",
+                        "schema": {
+                            "$ref": "#/definitions/LoginHandler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/LoginHandler.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "BookingCancelHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "room": {
+                    "$ref": "#/definitions/models.Booking"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "BookingCreateHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "room": {
+                    "$ref": "#/definitions/models.Booking"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "DummyLoginHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "FindBookingHandler.Pagination": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "FindBookingHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/FindBookingHandler.Pagination"
+                },
+                "room": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Booking"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GetRoomsListHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "rooms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Room"
+                    }
+                }
+            }
+        },
+        "GetSlotsHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "slots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Slot"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "LoginHandler.Request": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "LoginHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "MyBookingHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "room": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Booking"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "RegisterHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "createRoomHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "room": {
+                    "$ref": "#/definitions/models.Room"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "createScheduleHandler.Request": {
+            "type": "object",
+            "required": [
+                "days_of_week",
+                "end",
+                "start"
+            ],
+            "properties": {
+                "days_of_week": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "end": {
+                    "type": "string"
+                },
+                "start": {
+                    "type": "string"
+                }
+            }
+        },
+        "createScheduleHandler.Response": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "schedule": {
+                    "$ref": "#/definitions/models.Schedule"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Booking": {
+            "type": "object",
+            "properties": {
+                "conferenceLink": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "slotID": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.BookingStatus"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BookingStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "BookingStatusActive",
+                "BookingStatusCancelled"
+            ]
+        },
+        "models.Role": {
+            "type": "string",
+            "enum": [
+                "admin",
+                "user"
+            ],
+            "x-enum-varnames": [
+                "RoleAdmin",
+                "RoleUser"
+            ]
+        },
+        "models.Room": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Schedule": {
+            "type": "object",
+            "properties": {
+                "daysOfWeek": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "roomID": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Slot": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "roomID": {
+                    "type": "string"
+                },
+                "start": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/models.Role"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
